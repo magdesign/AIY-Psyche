@@ -7,9 +7,17 @@ from aiy.vision.inference import CameraInference
 from aiy.vision.models import face_detection
 from aiy.vision.annotator import Annotator
 
-import os
+import os, sys
 import time
 import subprocess, signal, psutil
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "dialogflow.json"
+import google.cloud.logging
+client = google.cloud.logging.Client()
+client.setup_logging()
+import logging
+def log(msg):
+    logging.info("{}: {}".format(os.uname()[1], msg))
 
 JOY_BOUNDARY_LOW = 0.2
 JOY_BOUNDARY_HIGH = 0.8
@@ -61,6 +69,8 @@ def kill_subprocesses_and_exit(*args):
 
 signal.signal(signal.SIGINT, kill_subprocesses_and_exit)
 
+log("startup")
+
 mode = 'detect'
 timer = False
 joy_scores = []
@@ -72,6 +82,7 @@ with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
             if mode == 'detect':
                 if len(faces):
                     if not timer:
+                        log("start timer")
                         timer = time.time()
                 else:
                     timer = False
@@ -82,7 +93,7 @@ with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
                     print("no face detected")
 
                 if timer and elapsed_time(timer) > FACE_PRESENCE_TIME:
-                    print("start session")
+                    log("start session")
                     mode = 'session'
                     kill_player(omxplayer.pid)
                     omxplayer = subprocess.Popen(
@@ -96,7 +107,7 @@ with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
                 joy_scores.append(avg_joy_score(faces))
                 if omxplayer.poll() != None:
                     joy_score = sum(joy_scores) / len(joy_scores)
-                    print("play %s (%f)" % (get_joy_media(joy_score), joy_score))
+                    log("play %s (%f)" % (get_joy_media(joy_score), joy_score))
                     subprocess.call(
                         OMXPLAYER + [os.path.join(MEDIA_PATH, get_joy_media(joy_score) + '.mp4')],
                         stdin=DEVNULL,
@@ -107,5 +118,4 @@ with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
                     timer = False
                     joy_scores = []
                     omxplayer = play_loop()
-                    print("wait after session")
                     time.sleep(WAIT_AFTER_SESSION)
