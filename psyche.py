@@ -27,6 +27,16 @@ MEDIA_PATH = "/home/pi/AIY-projects-python/src/examples/vision/media"
 OMXPLAYER = ['omxplayer', '--no-osd']
 DEVNULL = open('/dev/null', 'w')
 
+def get_random_media_path(folder):
+    try:
+        media_files = os.listdir(os.path.join(MEDIA_PATH, folder))
+        if len(media_files):
+            return os.path.join(MEDIA_PATH, folder, random.choice(media_files))
+        else:
+            return False
+    except OSError:
+        return False
+
 def avg_joy_score(faces):
     if faces:
         return sum(face.joy_score for face in faces) / len(faces)
@@ -37,11 +47,11 @@ def elapsed_time(timer):
 
 def get_joy_media(joy_score):
     if (joy_score < JOY_BOUNDARY_LOW):
-        return 'sad'
+        return get_random_media_path('sad')
     if (joy_score > JOY_BOUNDARY_HIGH):
-        return 'happy'
+        return get_random_media_path('happy')
 
-    return 'average'
+    return get_random_media_path('average')
 
 def kill_player(process_pid):
     try:
@@ -97,7 +107,7 @@ with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
                     mode = 'session'
                     kill_player(omxplayer.pid)
                     omxplayer = subprocess.Popen(
-                        OMXPLAYER + [os.path.join(MEDIA_PATH, 'welcome.mp4')], 
+                        OMXPLAYER + [get_random_media_path('welcome')], 
                         stdin=DEVNULL,
                         stdout=DEVNULL,
                         stderr=DEVNULL,
@@ -109,7 +119,7 @@ with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
                     joy_score = sum(joy_scores) / len(joy_scores)
                     log("play %s (%f)" % (get_joy_media(joy_score), joy_score))
                     subprocess.call(
-                        OMXPLAYER + [os.path.join(MEDIA_PATH, get_joy_media(joy_score) + '.mp4')],
+                        OMXPLAYER + [get_joy_media(joy_score)],
                         stdin=DEVNULL,
                         stdout=DEVNULL,
                         stderr=DEVNULL,
