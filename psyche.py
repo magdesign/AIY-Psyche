@@ -10,6 +10,7 @@ from aiy.vision.annotator import Annotator
 import os, sys
 import time
 import subprocess, signal, psutil
+import random
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "dialogflow.json"
 import google.cloud.logging
